@@ -1,0 +1,70 @@
+.profile-hero {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.profile-avatar-large {
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 32px; font-weight: 700; color: #000;
+  flex-shrink: 0;
+}
+.profile-avatar-small {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: #000;
+  flex-shrink: 0;
+}
+.profile-hero-info { flex: 1; min-width: 200px; }
+.profile-stats-row { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 16px; }
+.profile-stat { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.profile-stat span { font-size: 12px; color: var(--text-secondary); }
+
+.tab-bar { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab-btn {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.tab-btn:hover { color: var(--text-primary); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.heatmap-scroll { overflow-x: auto; padding-bottom: 8px; }
+.heatmap { display: flex; gap: 3px; }
+.heatmap-week { display: flex; flex-direction: column; gap: 3px; }
+.heatmap-cell {
+  width: 12px; height: 12px;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-muted);
+  transition: transform 0.1s;
+}
+.heatmap-cell:hover { transform: scale(1.3); }
+.heatmap-cell.solved { background: var(--success); border-color: var(--success); }
+
+.friends-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
+.friend-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.2s;
+}
+.friend-card:hover { border-color: var(--accent); transform: translateY(-1px); }
