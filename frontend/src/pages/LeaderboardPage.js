@@ -77,10 +77,12 @@ const LeaderboardPage = () => {
                   <td colSpan={6} className="lb-empty">No users found</td>
                 </tr>
               ) : users.map((u, i) => {
+                if (!u || !u.username) return null;
                 const rank = (page - 1) * LIMIT + i + 1;
                 const isMe = u._id === user?._id;
+                const initial = (u.username || '?')[0].toUpperCase();
                 return (
-                  <tr key={u._id} className={`lb-row ${isMe ? 'lb-row-me' : ''}`}>
+                  <tr key={u._id || i} className={`lb-row ${isMe ? 'lb-row-me' : ''}`}>
                     <td className="lb-td lb-rank-cell">
                       {rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : (
                         <span className="lb-rank-num">{rank}</span>
@@ -88,7 +90,7 @@ const LeaderboardPage = () => {
                     </td>
                     <td className="lb-td">
                       <Link to={`/profile/${u.username}`} className="lb-user-link">
-                        <div className="lb-avatar">{u.username[0].toUpperCase()}</div>
+                        <div className="lb-avatar">{initial}</div>
                         <span className={isMe ? 'lb-username-me' : 'lb-username'}>
                           {u.username}{isMe && ' (you)'}
                         </span>
