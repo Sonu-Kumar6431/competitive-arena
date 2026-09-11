@@ -242,4 +242,4 @@ const CreateContestPage = () => {
   );
 };
 
-export default CreateContestPage;
+export default CreateContestPage ;

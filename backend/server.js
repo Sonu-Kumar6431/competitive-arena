@@ -43,10 +43,20 @@ io.on('connection', (socket) => {
 app.set('io', io);
 
 // MongoDB connection
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/competitive_arena';
-mongoose.connect(MONGO_URI)
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/competitive_arena';
+const mongoOptions = {
+  serverSelectionTimeoutMS: 5000,
+  retryWrites: true,
+};
+
+mongoose.connect(MONGO_URI, mongoOptions)
   .then(() => console.log('MongoDB connected'))
-  .catch(err => console.log('MongoDB error:', err));
+  .catch(err => {
+    console.error('MongoDB connection failed. Server will keep running without DB:', err.message);
+  });
+
+mongoose.connection.on('disconnected', () => console.warn('MongoDB disconnected'));
+mongoose.connection.on('reconnected', () => console.log('MongoDB reconnected'));
 
 // Cron: sync active contest submissions every 2 minutes
 cron.schedule('*/2 * * * *', async () => {
@@ -57,6 +67,25 @@ cron.schedule('*/2 * * * *', async () => {
   }
 });
 
-const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+const PORT = Number(process.env.PORT) || 5004;
+
+const startServer = (port) => {
+  const serverInstance = server.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+
+  serverInstance.on('error', (error) => {
+    if (error.code === 'EADDRINUSE') {
+      const fallbackPort = port + 1;
+      console.warn(`Port ${port} is busy. Retrying on port ${fallbackPort}...`);
+      startServer(fallbackPort);
+      return;
+    }
+
+    console.error('Server failed to start:', error);
+    process.exit(1);
+  });
+};
+
+startServer(PORT);
 module.exports = { app, io };
