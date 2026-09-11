@@ -38,22 +38,54 @@ router.post('/', protect, async (req, res) => {
 
 // Get all public contests + user's contests
 router.get('/', protect, async (req, res) => {
-  try {
-    const { status, page = 1, limit = 20 } = req.query;
-    const query = { $or: [{ isPrivate: false }, { creator: req.user._id }, { 'participants.user': req.user._id }] };
-    if (status) query.status = status;
-    const contests = await Contest.find(query)
-      .populate('creator', 'username avatar')
-      .sort({ startTime: -1 })
-      .skip((page - 1) * limit)
-      .limit(parseInt(limit));
-    // Update statuses
-    for (const c of contests) { c.updateStatus(); }
-    const total = await Contest.countDocuments(query);
-    res.json({ contests, total, pages: Math.ceil(total / limit) });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
+    try {
+        const { status, page = 1, limit = 20 } = req.query;
+
+        const query = {
+            $or: [
+                { isPrivate: false },
+                { creator: req.user._id },
+                { 'participants.user': req.user._id }
+            ]
+        };
+
+        const now = new Date();
+
+        if (status === 'upcoming') {
+            query.startTime = { $gt: now };
+        }
+        else if (status === 'active') {
+            query.startTime = { $lte: now };
+            query.endTime = { $gte: now };
+        }
+        else if (status === 'finished') {
+            query.endTime = { $lt: now };
+        }
+
+        const contests = await Contest.find(query)
+            .populate('creator', 'username avatar')
+            .sort({ startTime: -1 })
+            .skip((page - 1) * limit)
+            .limit(parseInt(limit));
+
+        // Make sure returned status is correct
+        for (const contest of contests) {
+            contest.updateStatus();
+        }
+
+        const total = await Contest.countDocuments(query);
+
+        res.json({
+            contests,
+            total,
+            pages: Math.ceil(total / limit)
+        });
+
+    } catch (err) {
+        res.status(500).json({
+            message: err.message
+        });
+    }
 });
 
 // Get single contest
