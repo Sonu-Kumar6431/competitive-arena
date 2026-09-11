@@ -15,16 +15,33 @@ const ContestsPage = () => {
   const [inviteCode, setInviteCode] = useState('');
   const navigate = useNavigate();
 
-  const fetchContests = async () => {
-    setLoading(true);
-    try {
-      const params = filter !== 'all' ? `?status=${filter}` : '';
-      const res = await axios.get(`/api/contests${params}&limit=50`, { headers: authHeader() });
-      setContests(res.data.contests || []);
-    } catch (err) {
-      toast.error('Failed to fetch contests');
-    } finally { setLoading(false); }
-  };
+const fetchContests = async () => {
+  setLoading(true);
+
+  try {
+    const params = new URLSearchParams();
+
+    if (filter !== 'all') {
+      params.set('status', filter);
+    }
+
+    params.set('limit', '50');
+
+    const res = await axios.get(
+      `/api/contests?${params.toString()}`,
+      {
+        headers: authHeader()
+      }
+    );
+
+    setContests(res.data.contests || []);
+  } catch (err) {
+    console.error('Failed to fetch contests:', err);
+    toast.error(err.response?.data?.message || 'Failed to fetch contests');
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => { fetchContests(); }, [filter]);
 

@@ -93,13 +93,29 @@ const syncContestSubmissions = async (io) => {
         updated = true;
       }
       // Recalculate score & penalty
-      let score = 0, penalty = 0, solved = 0;
+      let score = 0;
+      let penalty = 0;
+      let solved = 0;
+
       for (const r of participant.problemResults) {
-        if (r.solved) {
-          solved++;
-          score += problem?.points || 100;
-          const elapsed = Math.floor((r.solvedAt - contest.startTime) / 60000);
-          penalty += elapsed + r.penalty;
+        if (!r.solved) continue;
+
+        solved++;
+
+        const problem = contest.problems.find(
+          p =>
+            p.cfContestId === r.cfContestId &&
+            p.cfIndex === r.cfIndex
+        );
+
+        score += problem?.points || 100;
+
+        if (r.solvedAt) {
+          const elapsed = Math.floor(
+            (new Date(r.solvedAt) - new Date(contest.startTime)) / 60000
+          );
+
+          penalty += elapsed + (r.penalty || 0);
         }
       }
       participant.score = score;
