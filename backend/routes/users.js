@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const mongoose = require('mongoose');
 const User = require('../models/User');
 const Contest = require('../models/Contest');
 const { protect } = require('../middleware/auth');
@@ -71,45 +72,164 @@ router.get('/:username/analytics', protect, async (req, res) => {
   }
 });
 
+
 // Send friend request
 router.post('/friends/request/:userId', protect, async (req, res) => {
   try {
-    if (req.params.userId === req.user._id.toString())
-      return res.status(400).json({ message: "Can't add yourself" });
-    const target = await User.findById(req.params.userId);
-    if (!target) return res.status(404).json({ message: 'User not found' });
-    if (target.friendRequests.includes(req.user._id))
-      return res.status(400).json({ message: 'Request already sent' });
-    if (target.friends.includes(req.user._id))
-      return res.status(400).json({ message: 'Already friends' });
-    target.friendRequests.push(req.user._id);
-    target.notifications.push({ message: `${req.user.username} sent you a friend request`, type: 'friend', link: `/profile/${req.user.username}` });
-    await target.save();
-    res.json({ message: 'Friend request sent' });
+    const senderId = req.user._id;
+    const receiverId = req.params.userId;
+
+    // Cannot send request to yourself
+    if (senderId.toString() === receiverId.toString()) {
+      return res.status(400).json({
+        message: "Can't add yourself"
+      });
+    }
+
+    const sender = await User.findById(senderId);
+    const receiver = await User.findById(receiverId);
+
+    if (!receiver) {
+      return res.status(404).json({
+        message: 'User not found'
+      });
+    }
+
+    // Already friends
+    if (
+      receiver.friends.some(
+        id => id.toString() === senderId.toString()
+      )
+    ) {
+      return res.status(400).json({
+        message: 'Already friends'
+      });
+    }
+
+    // Request already exists
+    if (
+      receiver.friendRequests.some(
+        id => id.toString() === senderId.toString()
+      )
+    ) {
+      return res.status(400).json({
+        message: 'Request already sent'
+      });
+    }
+
+    // Add request
+    receiver.friendRequests.push(senderId);
+
+    // Add notification
+    receiver.notifications.push({
+      message: `${sender.username} sent you a friend request`,
+      type: 'friend_request',
+
+      // Keep profile link for navigation
+      link: `/profile/${sender.username}`,
+
+      // VERY IMPORTANT
+      relatedUser: senderId
+    });
+
+    await receiver.save();
+
+    res.json({
+      message: 'Friend request sent'
+    });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Send friend request error:', err);
+
+    res.status(500).json({
+      message: err.message
+    });
   }
 });
 
-// Accept/reject friend request
+
+// Accept / reject friend request
 router.post('/friends/respond/:userId', protect, async (req, res) => {
   try {
+    const receiverId = req.user._id;
+    const senderId = req.params.userId;
     const { accept } = req.body;
-    const me = await User.findById(req.user._id);
-    me.friendRequests = me.friendRequests.filter(id => id.toString() !== req.params.userId);
-    if (accept) {
-      me.friends.push(req.params.userId);
-      const other = await User.findById(req.params.userId);
-      if (other) {
-        other.friends.push(req.user._id);
-        other.notifications.push({ message: `${me.username} accepted your friend request`, type: 'friend', link: `/profile/${me.username}` });
-        await other.save();
-      }
+
+    // Validate sender ID
+    if (!senderId || !mongoose.Types.ObjectId.isValid(senderId)) {
+      return res.status(400).json({
+        message: 'Invalid user ID'
+      });
     }
+
+    const me = await User.findById(receiverId);
+    const other = await User.findById(senderId);
+
+    if (!me || !other) {
+      return res.status(404).json({
+        message: 'User not found'
+      });
+    }
+
+    // Make sure the request actually exists
+    const requestExists = me.friendRequests.some(
+      id => id.toString() === senderId.toString()
+    );
+
+    if (!requestExists) {
+      return res.status(400).json({
+        message: 'No pending friend request from this user'
+      });
+    }
+
+    // Remove request from pending list
+    me.friendRequests = me.friendRequests.filter(
+      id => id.toString() !== senderId.toString()
+    );
+
+    if (accept) {
+
+      // Add friendship only if not already present
+      if (
+        !me.friends.some(
+          id => id.toString() === senderId.toString()
+        )
+      ) {
+        me.friends.push(senderId);
+      }
+
+      if (
+        !other.friends.some(
+          id => id.toString() === receiverId.toString()
+        )
+      ) {
+        other.friends.push(receiverId);
+      }
+
+      // Notify sender
+      other.notifications.push({
+        message: `${me.username} accepted your friend request`,
+        type: 'friend',
+        link: `/profile/${me.username}`,
+        relatedUser: receiverId
+      });
+    }
+
     await me.save();
-    res.json({ message: accept ? 'Friend added' : 'Request rejected' });
+    await other.save();
+
+    res.json({
+      message: accept
+        ? 'Friend added successfully'
+        : 'Request rejected successfully'
+    });
+
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error('Friend respond error:', err);
+
+    res.status(500).json({
+      message: err.message
+    });
   }
 });
 

@@ -74,38 +74,45 @@ const Layout = () => {
    * accept = true  -> accept
    * accept = false -> decline
    */
-  const respondToRequest = async (userId, accept) => {
-    try {
-      const token = localStorage.getItem('token');
-
-      await axios.post(
-        `/api/users/friends/respond/${userId}`,
-        { accept },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
-
-      toast.success(
-        accept
-          ? 'Friend request accepted'
-          : 'Friend request declined'
-      );
-
-      // Get the latest user data so the pending request
-      // disappears and the friends list is updated.
-      await refreshUser();
-
-      setShowRequests(false);
-    } catch (error) {
-      toast.error(
-        error.response?.data?.message ||
-        'Failed to respond to friend request'
-      );
+  const respondToFriendRequest = async (notification, accept) => {
+  try {
+    if (!notification.relatedUser) {
+      toast.error('Invalid friend request');
+      return;
     }
-  };
+
+    const token = localStorage.getItem('token');
+
+    await axios.post(
+      `/api/users/friends/respond/${notification.relatedUser}`,
+      { accept },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+
+    // Remove this notification from UI
+    setNotifs(prev =>
+      prev.filter(n => n._id !== notification._id)
+    );
+
+    if (accept) {
+      toast.success('Friend request accepted!');
+    } else {
+      toast.success('Friend request rejected!');
+    }
+
+  } catch (err) {
+    console.error('Friend request response error:', err);
+
+    toast.error(
+      err.response?.data?.message ||
+      'Failed to respond to friend request'
+    );
+  }
+};
 
   const navLinks = [
     { to: '/dashboard', label: 'Dashboard', icon: '🏠' },
@@ -212,42 +219,70 @@ const Layout = () => {
                       No notifications
                     </p>
                   ) : (
-                    notifs
-                      .slice(0, 10)
-                      .map(n => (
-                        <div
-                          key={n._id}
-                          className={`notif-item ${
-                            !n.read ? 'unread' : ''
-                          }`}
-                          onClick={() => {
-                            if (n.link) {
-                              navigate(n.link);
-                            }
+                    notifs.slice(0, 10).map(n => (
+                    <div
+                      key={n._id}
+                      className={`notif-item ${!n.read ? 'unread' : ''}`}
+                    >
+                      <span
+                        className="notif-dot"
+                        style={{
+                          background: n.read
+                            ? 'transparent'
+                            : 'var(--accent)'
+                        }}
+                      />
 
-                            setShowNotifs(false);
-                          }}
-                        >
-                          <span
-                            className="notif-dot"
+                      <div style={{ flex: 1 }}>
+                        <p>{n.message}</p>
+
+                        <small>
+                          {new Date(n.createdAt).toLocaleDateString()}
+                        </small>
+
+                        {n.type === 'friend_request' && n.relatedUser && (
+                          <div
                             style={{
-                              background: n.read
-                                ? 'transparent'
-                                : 'var(--accent)'
+                              display: 'flex',
+                              gap: 8,
+                              marginTop: 8
                             }}
-                          />
+                          >
+                            <button
+                              className="btn btn-sm btn-primary"
+                              onClick={() =>
+                                respondToFriendRequest(n, true)
+                              }
+                            >
+                              Accept
+                            </button>
 
-                          <div>
-                            <p>{n.message}</p>
+                            <button
+                              className="btn btn-sm btn-secondary"
+                              onClick={() =>
+                                respondToFriendRequest(n, false)
+                              }
+                            >
+                              Reject
+                            </button>
 
-                            <small>
-                              {new Date(
-                                n.createdAt
-                              ).toLocaleDateString()}
-                            </small>
+                            <button
+                              className="btn btn-sm"
+                              onClick={() => {
+                                if (n.link) {
+                                  navigate(n.link);
+                                }
+
+                                setShowNotifs(false);
+                              }}
+                            >
+                              Profile
+                            </button>
                           </div>
-                        </div>
-                      ))
+                        )}
+                      </div>
+                    </div>
+                  ))
                   )}
                 </div>
               )}
@@ -330,7 +365,7 @@ const Layout = () => {
                               <button
                                 className="btn btn-sm"
                                 onClick={() =>
-                                  respondToRequest(
+                                  respondToFriendRequest(
                                     senderId,
                                     true
                                   )
@@ -342,7 +377,7 @@ const Layout = () => {
                               <button
                                 className="btn btn-sm"
                                 onClick={() =>
-                                  respondToRequest(
+                                  respondToFriendRequest(
                                     senderId,
                                     false
                                   )

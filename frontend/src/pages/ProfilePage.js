@@ -53,8 +53,9 @@ const ProfilePage = () => {
   }, [username]);
 
   const isSelf = me?.username === username;
-  const isFriend = profile?.friends?.some(f => f._id === me?._id || f === me?._id);
-  const hasPendingRequest = profile?.friendRequests?.includes(me?._id);
+  const isFriend = profile?.friends?.some(f => (f._id || f).toString() === me?._id?.toString());
+
+const hasPendingRequest = profile?.friendRequests?.some(id => id.toString() === me?._id?.toString());
 
   const sendFriendRequest = async () => {
     try {

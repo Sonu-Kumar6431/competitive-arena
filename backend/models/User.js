@@ -21,11 +21,24 @@ const userSchema = new mongoose.Schema({
   solvedDates: [{ type: String }], // YYYY-MM-DD
   notifications: [{
     message: String,
-    type: { type: String, enum: ['contest', 'friend', 'leaderboard', 'reminder'] },
-    read: { type: Boolean, default: false },
+    type: {
+      type: String,
+      enum: ['contest', 'friend','friend_request', 'leaderboard', 'reminder']
+    },
+    read: {
+      type: Boolean,
+      default: false
+    },
     link: String,
-    createdAt: { type: Date, default: Date.now }
-  }],
+    relatedUser: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now
+    }
+}],
   createdAt: { type: Date, default: Date.now }
 }, { timestamps: true });
 
