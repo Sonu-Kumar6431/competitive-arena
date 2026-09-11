@@ -10,7 +10,8 @@ router.get('/:username', protect, async (req, res) => {
   try {
     const user = await User.findOne({ username: req.params.username })
       .select('-password')
-      .populate('friends', 'username avatar rating rank');
+      .populate('friends', 'username avatar rating rank')
+      .populate('friendRequests', 'username rating rank avatar'); 
     if (!user) return res.status(404).json({ message: 'User not found' });
     res.json(user);
   } catch (err) {
